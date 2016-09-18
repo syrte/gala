@@ -11,24 +11,24 @@ void nan_hessian(double t, double *pars, double *q, double *hess) {
 /* ---------------------------------------------------------------------------
     For the rotating potential class helper
 */
-double rotating_value(double t, double *Omega, double *q, double *p) {
+double rotating_value(double t, double *Omega, double *qp) {
     double Lx,Ly,Lz;
-    Lx = q[1]*p[2] - q[2]*p[1];
-    Ly = q[2]*p[0] - q[0]*p[2];
-    Lz = q[0]*p[1] - q[1]*p[0];
+    Lx = qp[1]*qp[2+3] - qp[2]*qp[1+3];
+    Ly = qp[2]*qp[0+3] - qp[0]*qp[2+3];
+    Lz = qp[0]*qp[1+3] - qp[1]*qp[0+3];
     return -(Omega[0]*Lx + Omega[1]*Ly + Omega[2]*Lz);
 }
 
-void rotating_gradient(double t, double *Omega, double *q, double *p, double *grad) {
+void rotating_gradient(double t, double *Omega, double *qp, double *grad) {
     // v_r, r in rotating frame
     // grad = grad_i + 2*Omega x v_r + Omega x Omega x r + dOmega/dt x r (but we assume constant Omega)
     double Om_dot_r, Om2;
-    Om_dot_r = Omega[0]*q[0] + Omega[1]*q[1] + Omega[2]*q[2];
+    Om_dot_r = Omega[0]*qp[0] + Omega[1]*qp[1] + Omega[2]*qp[2];
     Om2 = Omega[0]*Omega[0] + Omega[1]*Omega[1] + Omega[2]*Omega[2];
 
-    grad[0] = grad[0] + (Omega[1]*p[2] - Omega[2]*p[1]) + Omega[0]*Om_dot_r - q[0]*Om2;
-    grad[1] = grad[1] + (Omega[2]*p[0] - Omega[0]*p[2]) + Omega[1]*Om_dot_r - q[1]*Om2;
-    grad[2] = grad[2] + (Omega[0]*p[1] - Omega[1]*p[0]) + Omega[2]*Om_dot_r - q[2]*Om2;
+    grad[0] = grad[0] + (Omega[1]*qp[2+3] - Omega[2]*qp[1+3]) + Omega[0]*Om_dot_r - qp[0]*Om2;
+    grad[1] = grad[1] + (Omega[2]*qp[0+3] - Omega[0]*qp[2+3]) + Omega[1]*Om_dot_r - qp[1]*Om2;
+    grad[2] = grad[2] + (Omega[0]*qp[1+3] - Omega[1]*qp[0+3]) + Omega[2]*Om_dot_r - qp[2]*Om2;
 }
 
 /* ---------------------------------------------------------------------------
@@ -58,18 +58,18 @@ double kepler_value(double t, double *pars, double *q) {
     return -pars[0] * pars[1] / R;
 }
 
-void kepler_gradient(double t, double *pars, double *r, double *grad) {
+void kepler_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
     */
-    double R, fac;
-    R = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-    fac = pars[0] * pars[1] / (R*R*R);
+    double r, fac;
+    r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+    fac = pars[0] * pars[1] / (r*r*r);
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2];
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2];
 }
 
 void kepler_hessian(double t, double *pars, double *q, double *hess) {
@@ -119,20 +119,20 @@ double isochrone_value(double t, double *pars, double *q) {
     return -pars[0] * pars[1] / (sqrt(R2 + pars[2]*pars[2]) + pars[2]);
 }
 
-void isochrone_gradient(double t, double *pars, double *r, double *grad) {
+void isochrone_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - b (core scale)
     */
     double sqrt_r2_b2, fac, denom;
-    sqrt_r2_b2 = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2] + pars[2]*pars[2]);
+    sqrt_r2_b2 = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + pars[2]*pars[2]);
     denom = sqrt_r2_b2 * (sqrt_r2_b2 + pars[2])*(sqrt_r2_b2 + pars[2]);
     fac = pars[0] * pars[1] / denom;
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2];
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2];
 }
 
 double isochrone_density(double t, double *pars, double *q) {
@@ -205,19 +205,19 @@ double hernquist_value(double t, double *pars, double *q) {
     return -pars[0] * pars[1] / (R + pars[2]);
 }
 
-void hernquist_gradient(double t, double *pars, double *r, double *grad) {
+void hernquist_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - c (length scale)
     */
-    double R, fac;
-    R = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-    fac = pars[0] * pars[1] / ((R + pars[2]) * (R + pars[2]) * R);
+    double r, fac;
+    r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+    fac = pars[0] * pars[1] / ((r + pars[2]) * (r + pars[2]) * r);
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2];
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2];
 }
 
 double hernquist_density(double t, double *pars, double *q) {
@@ -279,38 +279,38 @@ void hernquist_hessian(double t, double *pars, double *q, double *hess) {
 /* ---------------------------------------------------------------------------
     Plummer sphere
 */
-double plummer_value(double t, double *pars, double *r) {
+double plummer_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - b (length scale)
     */
-    double R2 = r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
-    return -pars[0]*pars[1] / sqrt(R2 + pars[2]*pars[2]);
+    double r2 = q[0]*q[0] + q[1]*q[1] + q[2]*q[2];
+    return -pars[0]*pars[1] / sqrt(r2 + pars[2]*pars[2]);
 }
 
-void plummer_gradient(double t, double *pars, double *r, double *grad) {
+void plummer_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - b (length scale)
     */
-    double R2b, fac;
-    R2b = r[0]*r[0] + r[1]*r[1] + r[2]*r[2] + pars[2]*pars[2];
-    fac = pars[0] * pars[1] / sqrt(R2b) / R2b;
+    double r2b, fac;
+    r2b = q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + pars[2]*pars[2];
+    fac = pars[0] * pars[1] / sqrt(r2b) / r2b;
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2];
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2];
 }
 
-double plummer_density(double t, double *pars, double *r) {
+double plummer_density(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - b (length scale)
     */
-    double r2 = r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
+    double r2 = q[0]*q[0] + q[1]*q[1] + q[2]*q[2];
     return 3*pars[1] / (4*M_PI*pars[2]*pars[2]*pars[2]) * pow(1 + r2/(pars[2]*pars[2]), -2.5);
 }
 
@@ -354,30 +354,30 @@ void plummer_hessian(double t, double *pars, double *q, double *hess) {
 
     TODO: I think this is wrong?
 */
-double jaffe_value(double t, double *pars, double *r) {
+double jaffe_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - c (length scale)
     */
-    double R;
-    R = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-    return -pars[0] * pars[1] / pars[2] * log(1 + pars[2]/R);
+    double r;
+    r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+    return -pars[0] * pars[1] / pars[2] * log(1 + pars[2]/r);
 }
 
-void jaffe_gradient(double t, double *pars, double *r, double *grad){
+void jaffe_gradient(double t, double *pars, double *q, double *grad){
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - c (length scale)
     */
-    double R, fac;
-    R = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-    fac = pars[0] * pars[1] / pars[2] * (pars[2] / (R * (pars[2] + R)));
+    double r, fac;
+    r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+    fac = pars[0] * pars[1] / pars[2] * (pars[2] / (r * (pars[2] + r)));
 
-    grad[0] = grad[0] + fac*r[0]/R;
-    grad[1] = grad[1] + fac*r[1]/R;
-    grad[2] = grad[2] + fac*r[2]/R;
+    grad[0] = grad[0] + fac*q[0]/r;
+    grad[1] = grad[1] + fac*q[1]/r;
+    grad[2] = grad[2] + fac*q[2]/r;
 }
 
 double jaffe_density(double t, double *pars, double *q) {
@@ -455,7 +455,7 @@ double stone_density(double t, double *pars, double *q) {
 /* ---------------------------------------------------------------------------
     Spherical NFW
 */
-double sphericalnfw_value(double t, double *pars, double *r) {
+double sphericalnfw_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - v_c (circular velocity at the scale radius)
@@ -463,11 +463,11 @@ double sphericalnfw_value(double t, double *pars, double *r) {
     */
     double u, v_h2;
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5);
-    u = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]) / pars[2];
+    u = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]) / pars[2];
     return -v_h2 * log(1 + u) / u;
 }
 
-void sphericalnfw_gradient(double t, double *pars, double *r, double *grad) {
+void sphericalnfw_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - v_c (circular velocity at the scale radius)
@@ -476,12 +476,12 @@ void sphericalnfw_gradient(double t, double *pars, double *r, double *grad) {
     double fac, u, v_h2;
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5);
 
-    u = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]) / pars[2];
+    u = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]) / pars[2];
     fac = v_h2 / (u*u*u) / (pars[2]*pars[2]) * (log(1+u) - u/(1+u));
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2];
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2];
 }
 
 double sphericalnfw_density(double t, double *pars, double *q) {
@@ -533,7 +533,7 @@ double sphericalnfw_hessian(double t, double *pars, double *q, double *hess) {
 /* ---------------------------------------------------------------------------
     Flattened NFW
 */
-double flattenednfw_value(double t, double *pars, double *r) {
+double flattenednfw_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - v_c (circular velocity at the scale radius)
@@ -542,11 +542,11 @@ double flattenednfw_value(double t, double *pars, double *r) {
     */
     double u, v_h2;
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5);
-    u = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]/(pars[3]*pars[3])) / pars[2];
+    u = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]/(pars[3]*pars[3])) / pars[2];
     return -v_h2 * log(1 + u) / u;
 }
 
-void flattenednfw_gradient(double t, double *pars, double *r, double *grad) {
+void flattenednfw_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - v_c (circular velocity at the scale radius)
@@ -555,13 +555,13 @@ void flattenednfw_gradient(double t, double *pars, double *r, double *grad) {
     */
     double fac, u, v_h2;
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5);
-    u = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]/(pars[3]*pars[3])) / pars[2];
+    u = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]/(pars[3]*pars[3])) / pars[2];
 
     fac = v_h2 / (u*u*u) / (pars[2]*pars[2]) * (log(1+u) - u/(1+u));
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2]/(pars[3]*pars[3]);
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2]/(pars[3]*pars[3]);
 }
 
 double flattenednfw_density(double t, double *pars, double *xyz) {
@@ -595,7 +595,7 @@ double flattenednfw_density(double t, double *pars, double *xyz) {
 /* ---------------------------------------------------------------------------
     Satoh potential
 */
-double satoh_value(double t, double *pars, double *r) {
+double satoh_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
@@ -603,11 +603,11 @@ double satoh_value(double t, double *pars, double *r) {
             - b (length scale 2) TODO
     */
     double S2;
-    S2 = r[0]*r[0] + r[1]*r[1] + r[2]*r[2] + pars[2]*(pars[2] + 2*sqrt(r[2]*r[2] + pars[3]*pars[3]));
+    S2 = q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + pars[2]*(pars[2] + 2*sqrt(q[2]*q[2] + pars[3]*pars[3]));
     return -pars[0] * pars[1] / sqrt(S2);
 }
 
-void satoh_gradient(double t, double *pars, double *r, double *grad) {
+void satoh_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
@@ -615,23 +615,23 @@ void satoh_gradient(double t, double *pars, double *r, double *grad) {
             - b (length scale 2) TODO
     */
 
-    double S2 = r[0]*r[0] + r[1]*r[1] + r[2]*r[2] + pars[2]*(pars[2] + 2*sqrt(r[2]*r[2] + pars[3]*pars[3]));
+    double S2 = q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + pars[2]*(pars[2] + 2*sqrt(q[2]*q[2] + pars[3]*pars[3]));
     double dPhi_dS = pars[0] * pars[1] / S2;
 
-    grad[0] = grad[0] + dPhi_dS*r[0]/sqrt(S2);
-    grad[1] = grad[1] + dPhi_dS*r[1]/sqrt(S2);
-    grad[2] = grad[2] + dPhi_dS/sqrt(S2) * r[2]*(1 + pars[2] / sqrt(r[2]*r[2] + pars[3]*pars[3]));
+    grad[0] = grad[0] + dPhi_dS*q[0]/sqrt(S2);
+    grad[1] = grad[1] + dPhi_dS*q[1]/sqrt(S2);
+    grad[2] = grad[2] + dPhi_dS/sqrt(S2) * q[2]*(1 + pars[2] / sqrt(q[2]*q[2] + pars[3]*pars[3]));
 }
 
-double satoh_density(double t, double *pars, double *r) {
+double satoh_density(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
             - a (length scale 1) TODO
             - b (length scale 2) TODO
     */
-    double z2b2 = r[2]*r[2] + pars[3]*pars[3];
-    double xyz2 = r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
+    double z2b2 = q[2]*q[2] + pars[3]*pars[3];
+    double xyz2 = q[0]*q[0] + q[1]*q[1] + q[2]*q[2];
     double S2 = xyz2 + pars[2]*(pars[2] + 2*sqrt(z2b2));
     double A = pars[1] * pars[2] * pars[3]*pars[3] / (4*M_PI*S2*sqrt(S2)*z2b2);
     return A * (1/sqrt(z2b2) + 3/pars[2]*(1 - xyz2/S2));
@@ -640,7 +640,7 @@ double satoh_density(double t, double *pars, double *r) {
 /* ---------------------------------------------------------------------------
     Miyamoto-Nagai flattened potential
 */
-double miyamotonagai_value(double t, double *pars, double *r) {
+double miyamotonagai_value(double t, double *pars, double *q) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
@@ -648,11 +648,11 @@ double miyamotonagai_value(double t, double *pars, double *r) {
             - b (length scale 2) TODO
     */
     double zd;
-    zd = (pars[2] + sqrt(r[2]*r[2] + pars[3]*pars[3]));
-    return -pars[0] * pars[1] / sqrt(r[0]*r[0] + r[1]*r[1] + zd*zd);
+    zd = (pars[2] + sqrt(q[2]*q[2] + pars[3]*pars[3]));
+    return -pars[0] * pars[1] / sqrt(q[0]*q[0] + q[1]*q[1] + zd*zd);
 }
 
-void miyamotonagai_gradient(double t, double *pars, double *r, double *grad) {
+void miyamotonagai_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
@@ -661,13 +661,13 @@ void miyamotonagai_gradient(double t, double *pars, double *r, double *grad) {
     */
     double sqrtz, zd, fac;
 
-    sqrtz = sqrt(r[2]*r[2] + pars[3]*pars[3]);
+    sqrtz = sqrt(q[2]*q[2] + pars[3]*pars[3]);
     zd = pars[2] + sqrtz;
-    fac = pars[0]*pars[1] * pow(r[0]*r[0] + r[1]*r[1] + zd*zd, -1.5);
+    fac = pars[0]*pars[1] * pow(q[0]*q[0] + q[1]*q[1] + zd*zd, -1.5);
 
-    grad[0] = grad[0] + fac*r[0];
-    grad[1] = grad[1] + fac*r[1];
-    grad[2] = grad[2] + fac*r[2] * (1. + pars[2] / sqrtz);
+    grad[0] = grad[0] + fac*q[0];
+    grad[1] = grad[1] + fac*q[1];
+    grad[2] = grad[2] + fac*q[2] * (1. + pars[2] / sqrtz);
 }
 
 double miyamotonagai_density(double t, double *pars, double *q) {
@@ -691,7 +691,7 @@ double miyamotonagai_density(double t, double *pars, double *q) {
     return numer/denom;
 }
 
-void miyamotonagai_hessian(double t, double *pars, double *r, double *hess) {
+void miyamotonagai_hessian(double t, double *pars, double *q, double *hess) {
     /*  pars:
             - G (Gravitational constant)
             - m (mass scale)
@@ -704,9 +704,9 @@ void miyamotonagai_hessian(double t, double *pars, double *r, double *hess) {
     a = pars[2];
     b = pars[3];
 
-    double tmp0 = r[0]*r[0];
-    double tmp1 = r[1]*r[1];
-    double tmp2 = r[2]*r[2];
+    double tmp0 = q[0]*q[0];
+    double tmp1 = q[1]*q[1];
+    double tmp2 = q[2]*q[2];
     double tmp3 = b*b + tmp2;
     double tmp4 = sqrt(tmp3);
     double tmp5 = a + tmp4;
@@ -716,12 +716,12 @@ void miyamotonagai_hessian(double t, double *pars, double *r, double *hess) {
     double tmp9 = G*M*tmp8;
     double tmp10 = pow(tmp7, -2.5);
     double tmp11 = 3*G*M*tmp10;
-    double tmp12 = 3*G*M*tmp10*r[0];
-    double tmp13 = -tmp12*r[1];
+    double tmp12 = 3*G*M*tmp10*q[0];
+    double tmp13 = -tmp12*q[1];
     double tmp14 = 1.0/tmp4;
-    double tmp15 = tmp14*tmp5*r[2];
+    double tmp15 = tmp14*tmp5*q[2];
     double tmp16 = -tmp12*tmp15;
-    double tmp17 = -3*G*M*tmp10*tmp15*r[1];
+    double tmp17 = -3*G*M*tmp10*tmp15*q[1];
     double tmp18 = 1.0/tmp3;
     double tmp19 = G*M*tmp2*tmp8;
 
@@ -741,7 +741,7 @@ void miyamotonagai_hessian(double t, double *pars, double *r, double *hess) {
 /* ---------------------------------------------------------------------------
     Lee-Suto triaxial NFW from Lee & Suto (2003)
 */
-double leesuto_value(double t, double *pars, double *r) {
+double leesuto_value(double t, double *pars, double *q) {
     /*  pars: (alpha = 1)
             0 - G
             1 - v_c
@@ -757,9 +757,9 @@ double leesuto_value(double t, double *pars, double *r) {
 
     phi0 = pars[1]*pars[1] / (log(2.) - 0.5 + (log(2.)-0.75)*e_b2 + (log(2.)-0.75)*e_c2);
 
-    x = r[0];
-    y = r[1];
-    z = r[2];
+    x = q[0];
+    y = q[1];
+    z = q[2];
 
     _r = sqrt(x*x + y*y + z*z);
     u = _r / pars[2];
@@ -774,7 +774,7 @@ double leesuto_value(double t, double *pars, double *r) {
     return phi0 * (F1 + (e_b2+e_c2)/2.*F2 + (e_b2*sinth2*sinph2 + e_c2*costh2)/2. * F3);
 }
 
-void leesuto_gradient(double t, double *pars, double *r, double *grad) {
+void leesuto_gradient(double t, double *pars, double *q, double *grad) {
     /*  pars: (alpha = 1)
             0 - G
             1 - v_c
@@ -792,9 +792,9 @@ void leesuto_gradient(double t, double *pars, double *r, double *grad) {
 
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5 + (log(2.)-0.75)*e_b2 + (log(2.)-0.75)*e_c2);
 
-    x = r[0];
-    y = r[1];
-    z = r[2];
+    x = q[0];
+    y = q[1];
+    z = q[2];
 
     _r2 = x*x + y*y + z*z;
     _r = sqrt(_r2);
@@ -823,7 +823,7 @@ void leesuto_gradient(double t, double *pars, double *r, double *grad) {
     grad[2] = grad[2] + az;
 }
 
-double leesuto_density(double t, double *pars, double *r) {
+double leesuto_density(double t, double *pars, double *q) {
     /*  pars: (alpha = 1)
             0 - G
             1 - v_c
@@ -840,9 +840,9 @@ double leesuto_density(double t, double *pars, double *r) {
     double e_c2 = 1-c_a2;
     v_h2 = pars[1]*pars[1] / (log(2.) - 0.5 + (log(2.)-0.75)*e_b2 + (log(2.)-0.75)*e_c2);
 
-    x = r[0];
-    y = r[1];
-    z = r[2];
+    x = q[0];
+    y = q[1];
+    z = q[2];
 
     u = sqrt(x*x + y*y/b_a2 + z*z/c_a2) / pars[2];
     return v_h2 / (u * (1+u)*(1+u)) / (4.*M_PI*pars[2]*pars[2]*pars[0]);
@@ -851,13 +851,13 @@ double leesuto_density(double t, double *pars, double *r) {
 /* ---------------------------------------------------------------------------
     Logarithmic (triaxial)
 */
-double logarithmic_value(double t, double *pars, double *r) {
+double logarithmic_value(double t, double *pars, double *q) {
     /* pars[0] is G -- unused here */
     double x, y, z;
 
-    x = r[0]*cos(pars[6]) + r[1]*sin(pars[6]);
-    y = -r[0]*sin(pars[6]) + r[1]*cos(pars[6]);
-    z = r[2];
+    x = q[0]*cos(pars[6]) + q[1]*sin(pars[6]);
+    y = -q[0]*sin(pars[6]) + q[1]*cos(pars[6]);
+    z = q[2];
 
     return 0.5*pars[1]*pars[1] * log(pars[2]*pars[2] + // scale radius
                                      x*x/(pars[3]*pars[3]) +
@@ -865,13 +865,13 @@ double logarithmic_value(double t, double *pars, double *r) {
                                      z*z/(pars[5]*pars[5]));
 }
 
-void logarithmic_gradient(double t, double *pars, double *r, double *grad) {
+void logarithmic_gradient(double t, double *pars, double *q, double *grad) {
     /* pars[0] is G -- unused here */
     double x, y, z, ax, ay, az, fac;
 
-    x = r[0]*cos(pars[6]) + r[1]*sin(pars[6]);
-    y = -r[0]*sin(pars[6]) + r[1]*cos(pars[6]);
-    z = r[2];
+    x = q[0]*cos(pars[6]) + q[1]*sin(pars[6]);
+    y = -q[0]*sin(pars[6]) + q[1]*cos(pars[6]);
+    z = q[2];
 
     fac = pars[1]*pars[1] / (pars[2]*pars[2] + x*x/(pars[3]*pars[3]) + y*y/(pars[4]*pars[4]) + z*z/(pars[5]*pars[5]));
     ax = fac*x/(pars[3]*pars[3]);
