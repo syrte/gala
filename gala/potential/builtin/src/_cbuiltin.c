@@ -9,6 +9,29 @@ void nan_hessian(double t, double *pars, double *q, double *hess) {
 }
 
 /* ---------------------------------------------------------------------------
+    For the rotating potential class helper
+*/
+double rotating_value(double t, double *Omega, double *q, double *p) {
+    double Lx,Ly,Lz;
+    Lx = q[1]*p[2] - q[2]*p[1];
+    Ly = q[2]*p[0] - q[0]*p[2];
+    Lz = q[0]*p[1] - q[1]*p[0];
+    return -(Omega[0]*Lx + Omega[1]*Ly + Omega[2]*Lz);
+}
+
+void rotating_gradient(double t, double *Omega, double *q, double *p, double *grad) {
+    // v_r, r in rotating frame
+    // grad = grad_i + 2*Omega x v_r + Omega x Omega x r + dOmega/dt x r (but we assume constant Omega)
+    double Om_dot_r, Om2;
+    Om_dot_r = Omega[0]*q[0] + Omega[1]*q[1] + Omega[2]*q[2];
+    Om2 = Omega[0]*Omega[0] + Omega[1]*Omega[1] + Omega[2]*Omega[2];
+
+    grad[0] = grad[0] + (Omega[1]*p[2] - Omega[2]*p[1]) + Omega[0]*Om_dot_r - q[0]*Om2;
+    grad[1] = grad[1] + (Omega[2]*p[0] - Omega[0]*p[2]) + Omega[1]*Om_dot_r - q[1]*Om2;
+    grad[2] = grad[2] + (Omega[0]*p[1] - Omega[1]*p[0]) + Omega[2]*Om_dot_r - q[2]*Om2;
+}
+
+/* ---------------------------------------------------------------------------
     Henon-Heiles potential
 */
 double henon_heiles_value(double t, double *pars, double *q) {

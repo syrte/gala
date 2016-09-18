@@ -860,9 +860,11 @@ class LogarithmicPotential(CPotentialBase):
                 raise ValueError("Angle unit must be radian.")
 
 # ============================================================================
-# TODO: why do these have to be in this file?
+# TODO: can make it so it acts like CCompositePotential but always adds an
+#   extra set of functions to compute the rotating frame terms (coriolis, etc.)
+# - Crap -- need to pass position and velocity in to functions...
 
-# cdef class CCompositePotentialWrapper(CPotentialWrapper):
+# cdef class RotatingWrapper(CPotentialWrapper):
 
 #     def __init__(self, list potentials):
 #         cdef:
@@ -901,7 +903,7 @@ class LogarithmicPotential(CPotentialBase):
 #     def __reduce__(self):
 #         return (self.__class__, (list(self._potentials),))
 
-# class CCompositePotential(CPotentialBase, CompositePotential):
+# class RotatingPotential(CCompositePotential):
 
 #     def __init__(self, **potentials):
 #         CompositePotential.__init__(self, **potentials)
