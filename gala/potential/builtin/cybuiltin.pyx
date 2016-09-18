@@ -214,7 +214,8 @@ class KeplerPotential(CPotentialBase):
         parameters = OrderedDict()
         parameters['m'] = m
         super(KeplerPotential, self).__init__(parameters=parameters,
-                                              units=units)
+                                              units=units,
+                                              Wrapper=KeplerWrapper)
 
 # ============================================================================
 
@@ -264,7 +265,8 @@ class IsochronePotential(CPotentialBase):
         parameters['m'] = m
         parameters['b'] = b
         super(IsochronePotential, self).__init__(parameters=parameters,
-                                                 units=units)
+                                                 units=units,
+                                                 Wrapper=IsochroneWrapper)
 
     def action_angle(self, w):
         """
@@ -353,7 +355,8 @@ class HernquistPotential(CPotentialBase):
         parameters['m'] = m
         parameters['c'] = c
         super(HernquistPotential, self).__init__(parameters=parameters,
-                                                 units=units)
+                                                 units=units,
+                                                 Wrapper=HernquistWrapper)
 
 # ============================================================================
 
@@ -403,7 +406,8 @@ class PlummerPotential(CPotentialBase):
         parameters['m'] = m
         parameters['b'] = b
         super(PlummerPotential, self).__init__(parameters=parameters,
-                                               units=units)
+                                               units=units,
+                                               Wrapper=PlummerWrapper)
 
 # ============================================================================
 
@@ -453,7 +457,8 @@ class JaffePotential(CPotentialBase):
         parameters['m'] = m
         parameters['c'] = c
         super(JaffePotential, self).__init__(parameters=parameters,
-                                             units=units)
+                                             units=units,
+                                             Wrapper=JaffeWrapper)
 
 # ============================================================================
 
@@ -506,7 +511,8 @@ class StonePotential(CPotentialBase):
         parameters['r_c'] = r_c
         parameters['r_h'] = r_h
         super(StonePotential, self).__init__(parameters=parameters,
-                                             units=units)
+                                             units=units,
+                                             Wrapper=StoneWrapper)
 
 # ============================================================================
 
@@ -557,7 +563,8 @@ class SphericalNFWPotential(CPotentialBase):
         parameters['v_c'] = v_c
         parameters['r_s'] = r_s
         super(SphericalNFWPotential, self).__init__(parameters=parameters,
-                                                    units=units)
+                                                    units=units,
+                                                    Wrapper=SphericalNFWPotential)
 
 # ============================================================================
 
@@ -610,7 +617,8 @@ class SatohPotential(CPotentialBase):
         parameters['a'] = a
         parameters['b'] = b
         super(SatohPotential, self).__init__(parameters=parameters,
-                                             units=units)
+                                             units=units,
+                                             Wrapper=SatohWrapper)
 
 # ============================================================================
 
@@ -665,7 +673,8 @@ class MiyamotoNagaiPotential(CPotentialBase):
         parameters['a'] = a
         parameters['b'] = b
         super(MiyamotoNagaiPotential, self).__init__(parameters=parameters,
-                                                     units=units)
+                                                     units=units,
+                                                     Wrapper=MiyamotoNagaiWrapper)
 
 # ============================================================================
 
@@ -720,7 +729,8 @@ class FlattenedNFWPotential(CPotentialBase):
         parameters['r_s'] = r_s
         parameters['q_z'] = q_z
         super(FlattenedNFWPotential, self).__init__(parameters=parameters,
-                                                    units=units)
+                                                    units=units,
+                                                    Wrapper=FlattenedNFWPotential)
 
 # ============================================================================
 #
@@ -779,7 +789,8 @@ class LeeSutoTriaxialNFWPotential(CPotentialBase):
         parameters['b'] = b
         parameters['c'] = c
         super(LeeSutoTriaxialNFWPotential, self).__init__(parameters=parameters,
-                                                          units=units)
+                                                          units=units,
+                                                          Wrapper=LeeSutoTriaxialNFWWrapper)
 
 # ============================================================================
 
@@ -841,7 +852,8 @@ class LogarithmicPotential(CPotentialBase):
         parameters['q3'] = q3
         parameters['phi'] = phi
         super(LogarithmicPotential, self).__init__(parameters=parameters,
-                                                   units=units)
+                                                   units=units,
+                                                   Wrapper=LogarithmicWrapper)
 
         if not isinstance(self.units, DimensionlessUnitSystem):
             if self.units['angle'] != u.radian:
