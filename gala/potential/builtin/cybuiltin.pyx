@@ -908,13 +908,36 @@ class _RotatingPotential(CPotentialBase):
                                                  units=units,
                                                  Wrapper=RotatingWrapper)
 
+# TODO: rename ConstantRotatingPotential
 class RotatingPotential(CCompositePotential):
 
     def __init__(self, potential, Omega):
         """
-        TODO:
+        Enables intergration and evaluation of gravitational potentials in a (constant) rotating
+        reference frame, specified by the input rotation frequency vector, ``Omega``.
 
-        Omega is the 3-vector specifying the rotation axis and frequency.
+        With this pseudo-Potential class, many of the methods take on slightly different meaning.
+
+        * `~gala.potential.PotentialBase.value()` now evaluates the _effective_ potential given by
+          the potential energy of the input potential and the contributions from the rotating
+          frame:
+
+        .. math::
+
+            \Phi_{\rm eff}(\boldsymbol{x}) = \Phi(\boldsymbol{q}) -
+            \frac{1}{2}|\boldsymbol{\Omega} \times \boldsymbol{x}|^2
+
+          where :math:`\Phi(\boldsymbol{q})` is the input potential evaluated in an inertial frame.
+
+        * `~gala.potential.PotentialBase.gradient()` now also contains terms for the pseudo-forces
+          (centrifugal, coriolis, and Euler terms).
+
+        Parameters
+        ----------
+        potential : `~gala.potential.PotentialBase` subclass
+            The gravitational potential in a static / inertial frame.
+        Omega : :class:`~astropy.units.Quantity`
+            The 3-vector specifying the rotation axis and frequency.
         """
 
         # TODO: check for valid units...
