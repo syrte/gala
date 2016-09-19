@@ -5,6 +5,7 @@
 - Added support for Leapfrog integration when generating mock
     stellar streams.
 - Added new colormaps and defaults for the matplotlib style.
+- Support for integrating orbits in rotating reference frames.
 
 0.1.1 (2016-05-20)
 ------------------
