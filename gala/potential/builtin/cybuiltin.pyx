@@ -911,7 +911,7 @@ class _ConstantRotatingPotential(CPotentialBase):
 class ConstantRotatingPotential(CCompositePotential):
 
     def __init__(self, potential, Omega):
-        """
+        r"""
         Enables intergration and evaluation of gravitational potentials in a (constant) rotating
         reference frame, specified by the input rotation frequency vector, ``Omega``.
 
@@ -921,10 +921,10 @@ class ConstantRotatingPotential(CCompositePotential):
           the potential energy of the input potential and the contributions from the rotating
           frame:
 
-        .. math::
+          .. math::
 
-            \Phi_{\rm eff}(\boldsymbol{x}) = \Phi(\boldsymbol{q}) -
-            \frac{1}{2}|\boldsymbol{\Omega} \times \boldsymbol{x}|^2
+              \Phi_{\rm eff}(\boldsymbol{x}) = \Phi(\boldsymbol{q}) -
+              \frac{1}{2}|\boldsymbol{\Omega} \times \boldsymbol{x}|^2
 
           where :math:`\Phi(\boldsymbol{q})` is the input potential evaluated in an inertial frame.
 
