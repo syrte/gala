@@ -30,6 +30,7 @@ from ..cpotential import CPotentialBase
 from ..cpotential cimport CPotentialWrapper
 from ..ccompositepotential import CCompositePotential
 from ...units import DimensionlessUnitSystem
+from ...integrate import DOPRI853Integrator, LeapfrogIntegrator
 
 cdef extern from "src/cpotential.h":
     enum:
@@ -124,7 +125,7 @@ __all__ = ['HenonHeilesPotential', # Misc. potentials
            'JaffePotential', 'SphericalNFWPotential', 'StonePotential', # Spherical models
            'SatohPotential', 'MiyamotoNagaiPotential', 'FlattenedNFWPotential', # Flattened models
            'LeeSutoTriaxialNFWPotential', 'LogarithmicPotential', # Triaxial models
-           'RotatingPotential']
+           'ConstantRotatingPotential']
 
 # ============================================================================
 
@@ -869,7 +870,7 @@ class LogarithmicPotential(CPotentialBase):
 # - For now, don't allow Leapfrog integration with this potential!
 #   In the future, maybe implement: http://arxiv.org/pdf/0908.2269.pdf
 
-cdef class RotatingWrapper(CPotentialWrapper):
+cdef class ConstantRotatingWrapper(CPotentialWrapper):
 
     def __init__(self, G, Omega):
         cdef CPotential cp
@@ -890,7 +891,7 @@ cdef class RotatingWrapper(CPotentialWrapper):
         self.cpotential = cp
 
 # TODO: make sure this is hidden from the public API
-class _RotatingPotential(CPotentialBase):
+class _ConstantRotatingPotential(CPotentialBase):
     r"""
     TODO:
 
@@ -903,12 +904,11 @@ class _RotatingPotential(CPotentialBase):
         parameters['x'] = Omega[0]
         parameters['y'] = Omega[1]
         parameters['z'] = Omega[2]
-        super(_RotatingPotential, self).__init__(parameters=parameters,
-                                                 units=units,
-                                                 Wrapper=RotatingWrapper)
+        super(_ConstantRotatingPotential, self).__init__(parameters=parameters,
+                                                         units=units,
+                                                         Wrapper=ConstantRotatingWrapper)
 
-# TODO: rename ConstantRotatingPotential
-class RotatingPotential(CCompositePotential):
+class ConstantRotatingPotential(CCompositePotential):
 
     def __init__(self, potential, Omega):
         """
@@ -963,13 +963,68 @@ class RotatingPotential(CCompositePotential):
         else:
             self['static'] = potential
 
-        self['rotation'] = _RotatingPotential(_Omega, units=potential.units)
+        self['rotation'] = _ConstantRotatingPotential(_Omega, units=potential.units)
 
-    # TODO: override integrate_orbit and don't allow LeapfrogIntegrator
-    # def integrate_orbit()...
+    def integrate_orbit(self, w0, Integrator=DOPRI853Integrator,
+                        Integrator_kwargs=dict(), cython_if_possible=True,
+                        **time_spec):
+        """
+        Integrate an orbit in the current potential using the integrator class
+        provided. Uses same time specification as `Integrator.run()` -- see
+        the documentation for `gala.integrate` for more information.
+
+        Parameters
+        ----------
+        w0 : `~gala.dynamics.PhaseSpacePosition`, array_like
+            Initial conditions.
+        Integrator : `~gala.integrate.Integrator` (optional)
+            Integrator class to use.
+        Integrator_kwargs : dict (optional)
+            Any extra keyword argumets to pass to the integrator class
+            when initializing. Only works in non-Cython mode.
+        cython_if_possible : bool (optional)
+            If there is a Cython version of the integrator implemented,
+            and the potential object has a C instance, using Cython
+            will be *much* faster.
+        **time_spec
+            Specification of how long to integrate. See documentation
+            for `~gala.integrate.parse_time_specification`.
+
+        Returns
+        -------
+        orbit : `~gala.dynamics.CartesianOrbit`
+
+        """
+
+        if Integrator == LeapfrogIntegrator:
+            raise ValueError("Rotating potentials don't support integration with Leapfrog.")
+
+        return super(ConstantRotatingPotential, self)\
+                    .integrate_orbit(w0, Integrator=Integrator,
+                                     Integrator_kwargs=Integrator_kwargs,
+                                     cython_if_possible=cython_if_possible,
+                                     **time_spec)
 
     def to_inertial_frame(self, w, t=None):
         """
+        Convert the input `~gala.dynamics.PhaseSpacePosition` or `~gala.dynamics.Orbit` from
+        rotating reference frame to an inertial frame.
+
+        Currently only supports Cartesian coordinates.
+
+        Parameters
+        ----------
+        w : `~gala.dynamics.CartesianPhaseSpacePosition`, `~gala.dynamics.CartesianOrbit`
+            The coordinates or orbit to convert from the rotating frame to the non-rotating
+            inertial frame.
+        t : numeric, array_like, :class:`~astropy.units.Quantity` (optional)
+            If the input is a `~gala.dynamics.PhaseSpacePosition`, you must also specify the
+            time or an array of times to do the transformation.
+
+        Returns
+        -------
+        w_inertial : `~gala.dynamics.CartesianPhaseSpacePosition` or `~gala.dynamics.CartesianOrbit`
+            The input, transformed into a non-rotating inertial frame.
 
         """
         from ...dynamics import Orbit
