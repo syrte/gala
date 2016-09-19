@@ -889,8 +889,7 @@ cdef class RotatingWrapper(CPotentialWrapper):
         cp.n_dim = 3
         self.cpotential = cp
 
-# TODO: make this a "PseudoPotential" class that doesn't have same methods as a normal
-#       potential subclass? To prevent confusion...
+# TODO: make sure this is hidden from the public API
 class _RotatingPotential(CPotentialBase):
     r"""
     TODO:
@@ -932,6 +931,10 @@ class RotatingPotential(CCompositePotential):
         * `~gala.potential.PotentialBase.gradient()` now also contains terms for the pseudo-forces
           (centrifugal, coriolis, and Euler terms).
 
+        .. warning::
+
+            Positions and velocities passed in are assumed to be in the rotating frame!
+
         Parameters
         ----------
         potential : `~gala.potential.PotentialBase` subclass
@@ -966,6 +969,9 @@ class RotatingPotential(CCompositePotential):
     # def integrate_orbit()...
 
     def to_inertial_frame(self, w, t=None):
+        """
+
+        """
         from ...dynamics import Orbit
 
         # transform a PhaseSpacePosition / Orbit to an inertial / non-rotating frame
