@@ -28,6 +28,7 @@ np.import_array()
 from ..core import CompositePotential
 from ..cpotential import CPotentialBase
 from ..cpotential cimport CPotentialWrapper
+from ..ccompositepotential import CCompositePotential
 from ...units import DimensionlessUnitSystem
 
 cdef extern from "src/cpotential.h":
@@ -56,6 +57,9 @@ cdef extern from "src/cpotential.h":
 cdef extern from "src/_cbuiltin.h":
     double nan_density(double t, double *pars, double *q) nogil
     void nan_hessian(double t, double *pars, double *q, double *hess) nogil
+
+    double rotating_value(double t, double *Omega, double *qp) nogil
+    void rotating_gradient(double t, double *Omega, double *qp, double *grad) nogil
 
     double henon_heiles_value(double t, double *pars, double *q) nogil
     void henon_heiles_gradient(double t, double *pars, double *q, double *grad) nogil
@@ -120,7 +124,7 @@ __all__ = ['HenonHeilesPotential', # Misc. potentials
            'JaffePotential', 'SphericalNFWPotential', 'StonePotential', # Spherical models
            'SatohPotential', 'MiyamotoNagaiPotential', 'FlattenedNFWPotential', # Flattened models
            'LeeSutoTriaxialNFWPotential', 'LogarithmicPotential', # Triaxial models
-           ]
+           'RotatingPotential']
 
 # ============================================================================
 
@@ -862,71 +866,119 @@ class LogarithmicPotential(CPotentialBase):
 # ============================================================================
 # TODO: can make it so it acts like CCompositePotential but always adds an
 #   extra set of functions to compute the rotating frame terms (coriolis, etc.)
-# - Crap -- need to pass position and velocity in to functions...
+# - For now, don't allow Leapfrog integration with this potential!
+#   In the future, maybe implement: http://arxiv.org/pdf/0908.2269.pdf
 
-# cdef class RotatingWrapper(CPotentialWrapper):
+cdef class RotatingWrapper(CPotentialWrapper):
 
-#     def __init__(self, list potentials):
-#         cdef:
-#             CPotential cp
-#             CPotential tmp_cp
-#             int i
-#             CPotentialWrapper[::1] _cpotential_arr
+    def __init__(self, G, Omega):
+        cdef CPotential cp
 
-#         self._potentials = potentials
-#         _cpotential_arr = np.array(potentials)
+        # This is the only code that needs to change per-potential
+        cp.value[0] = <valuefunc>(rotating_value)
+        cp.density[0] = <densityfunc>(nan_density)
+        cp.gradient[0] = <gradientfunc>(rotating_gradient)
+        cp.hessian[0] = <hessianfunc>(nan_hessian) # TODO
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#         n_components = len(potentials)
-#         self._n_params = np.zeros(n_components, dtype=np.int32)
-#         for i in range(n_components):
-#             self._n_params[i] = _cpotential_arr[i]._n_params[0]
+        cp.n_components = 1
+        self._params = np.array(list(Omega), dtype=np.float64)
+        self._n_params = np.array([len(self._params)], dtype=np.int32)
+        cp.n_params = &(self._n_params[0])
+        cp.parameters[0] = &(self._params[0])
+        cp.n_dim = 3
+        self.cpotential = cp
 
-#         cp.n_components = n_components
-#         cp.n_params = &(self._n_params[0])
-#         cp.n_dim = 0
+class _RotatingPotential(CPotentialBase):
+    r"""
+    TODO:
 
-#         for i in range(n_components):
-#             tmp_cp = _cpotential_arr[i].cpotential
-#             cp.parameters[i] = &(_cpotential_arr[i]._params[0])
-#             cp.value[i] = tmp_cp.value[0]
-#             cp.density[i] = tmp_cp.density[0]
-#             cp.gradient[i] = tmp_cp.gradient[0]
-#             cp.hessian[i] = tmp_cp.hessian[0]
+    Parameters
+    ----------
 
-#             if cp.n_dim == 0:
-#                 cp.n_dim = tmp_cp.n_dim
-#             elif cp.n_dim != tmp_cp.n_dim:
-#                 raise ValueError("Input potentials must have same number of coordinate dimensions")
+    """
+    def __init__(self, Omega, units):
+        parameters = OrderedDict()
+        parameters['x'] = Omega[0]
+        parameters['y'] = Omega[1]
+        parameters['z'] = Omega[2]
+        super(_RotatingPotential, self).__init__(parameters=parameters,
+                                                 units=units,
+                                                 Wrapper=RotatingWrapper)
 
-#         self.cpotential = cp
+class RotatingPotential(CCompositePotential):
 
-#     def __reduce__(self):
-#         return (self.__class__, (list(self._potentials),))
+    def __init__(self, potential, Omega):
+        """
+        TODO:
 
-# class RotatingPotential(CCompositePotential):
+        Omega is the 3-vector specifying the rotation axis and frequency.
+        """
 
-#     def __init__(self, **potentials):
-#         CompositePotential.__init__(self, **potentials)
+        # TODO: check for valid units...
+        if not isinstance(potential.units, DimensionlessUnitSystem):
+            _Omega = Omega.to(1/potential.units['time'],
+                              equivalencies=u.dimensionless_angles()).value
+        else:
+            _Omega = np.array(Omega)
 
-#     def _reset_c_instance(self):
-#         self._potential_list = []
-#         for p in self.values():
-#             self._potential_list.append(p.c_instance)
-#         self.G = p.G
-#         self.c_instance = CCompositePotentialWrapper(self._potential_list)
+        if _Omega.shape != (3,):
+            raise ValueError("Rotation vector, Omega, must be 1D with 3 elements.")
 
-#     def __setitem__(self, *args, **kwargs):
-#         CompositePotential.__setitem__(self, *args, **kwargs)
-#         self._reset_c_instance()
+        self._Omega = _Omega
 
-#     def __setstate__(self, state):
-#         # when rebuilding from a pickle, temporarily release lock to add components
-#         self.lock = False
-#         for name,potential in state:
-#             self[name] = potential
-#         self._reset_c_instance()
-#         self.lock = True
+        CCompositePotential.__init__(self)
+        if isinstance(potential, CompositePotential):
+            for name,component in potential.items():
+                self[name] = component
 
-#     def __reduce__(self):
-#         """ Properly package the object for pickling """
-#         return self.__class__, (), list(self.items())
+        else:
+            self['static'] = potential
+
+        self['rotation'] = _RotatingPotential(_Omega, units=potential.units)
+
+    # TODO: override integrate_orbit and don't allow LeapfrogIntegrator
+    # def integrate_orbit()...
+
+    def to_inertial_frame(self, w, t=None):
+        from ...dynamics import Orbit
+
+        # transform a PhaseSpacePosition / Orbit to an inertial / non-rotating frame
+        usys = self['static'].units
+
+        if not isinstance(w, Orbit) and t is None:
+            raise ValueError("If input coordinates don't have associated times (e.g., "
+                             "are initial conditions, PhaseSpacePosition), you must pass "
+                             "in the time to do the transformation.")
+
+        elif t is None:
+            t = w.t
+
+        if hasattr(t, 'unit'):
+            t = t.decompose(usys).value
+
+        # the angle of rotation
+        Omega = np.linalg.norm(self._Omega)
+        theta = Omega * t
+
+        # construct rotation matrix to rotate around the vector Omega
+        uu = self._Omega / Omega # normalize
+        C = np.cos(theta)
+        S = np.sin(theta)
+        T = 1 - C
+        R = np.array([[T*uu[0]**2 + C, T*uu[0]*uu[1] - S*uu[2], T*uu[0]*uu[2] + S*uu[1]],
+                      [T*uu[0]*uu[1] + S*uu[2], T*uu[1]**2 + C, T*uu[1]*uu[2] - S*uu[0]],
+                      [T*uu[0]*uu[2] - S*uu[1], T*uu[1]*uu[2] + S*uu[0], T*uu[2]**2 + C]])
+
+        pos_i = np.einsum('ij...,j...->i...', R, w.pos.decompose(usys).value)*usys['length']
+        vel_i = w.vel + np.cross(self._Omega, w.pos.decompose(usys).value,
+                                 axisa=0, axisb=0, axisc=0)*usys['length']/usys['time']
+
+        if isinstance(w, Orbit):
+            return w.__class__(pos=pos_i, vel=vel_i, t=t*usys['time'])
+
+        else:
+            return w.__class__(pos=pos_i, vel=vel_i)
+
+
+

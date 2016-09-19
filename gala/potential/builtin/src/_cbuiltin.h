@@ -1,6 +1,9 @@
 extern double nan_density(double t, double *pars, double *q);
 extern void nan_hessian(double t, double *pars, double *q, double *hess);
 
+extern double rotating_value(double t, double *Omega, double *qp);
+extern void rotating_gradient(double t, double *Omega, double *qp, double *grad);
+
 extern double henon_heiles_value(double t, double *pars, double *q);
 extern void henon_heiles_gradient(double t, double *pars, double *q, double *grad);
 

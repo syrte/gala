@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 double nan_density(double t, double *pars, double *q) {
     return NAN;
@@ -12,11 +13,11 @@ void nan_hessian(double t, double *pars, double *q, double *hess) {
     For the rotating potential class helper
 */
 double rotating_value(double t, double *Omega, double *qp) {
-    double Lx,Ly,Lz;
-    Lx = qp[1]*qp[2+3] - qp[2]*qp[1+3];
-    Ly = qp[2]*qp[0+3] - qp[0]*qp[2+3];
-    Lz = qp[0]*qp[1+3] - qp[1]*qp[0+3];
-    return -(Omega[0]*Lx + Omega[1]*Ly + Omega[2]*Lz);
+    double _x,_y,_z;
+    _x = Omega[1]*qp[2] - Omega[2]*qp[1];
+    _y = Omega[2]*qp[0] - Omega[0]*qp[2];
+    _z = Omega[0]*qp[1] - Omega[1]*qp[0];
+    return -0.5 * (_x*_x + _y*_y + _z*_z);
 }
 
 void rotating_gradient(double t, double *Omega, double *qp, double *grad) {
@@ -26,9 +27,9 @@ void rotating_gradient(double t, double *Omega, double *qp, double *grad) {
     Om_dot_r = Omega[0]*qp[0] + Omega[1]*qp[1] + Omega[2]*qp[2];
     Om2 = Omega[0]*Omega[0] + Omega[1]*Omega[1] + Omega[2]*Omega[2];
 
-    grad[0] = grad[0] + (Omega[1]*qp[2+3] - Omega[2]*qp[1+3]) + Omega[0]*Om_dot_r - qp[0]*Om2;
-    grad[1] = grad[1] + (Omega[2]*qp[0+3] - Omega[0]*qp[2+3]) + Omega[1]*Om_dot_r - qp[1]*Om2;
-    grad[2] = grad[2] + (Omega[0]*qp[1+3] - Omega[1]*qp[0+3]) + Omega[2]*Om_dot_r - qp[2]*Om2;
+    grad[0] = grad[0] + 2*(Omega[1]*qp[2+3] - Omega[2]*qp[1+3]) + Omega[0]*Om_dot_r - qp[0]*Om2;
+    grad[1] = grad[1] + 2*(Omega[2]*qp[0+3] - Omega[0]*qp[2+3]) + Omega[1]*Om_dot_r - qp[1]*Om2;
+    grad[2] = grad[2] + 2*(Omega[0]*qp[1+3] - Omega[1]*qp[0+3]) + Omega[2]*Om_dot_r - qp[2]*Om2;
 }
 
 /* ---------------------------------------------------------------------------
