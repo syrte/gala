@@ -889,6 +889,8 @@ cdef class RotatingWrapper(CPotentialWrapper):
         cp.n_dim = 3
         self.cpotential = cp
 
+# TODO: make this a "PseudoPotential" class that doesn't have same methods as a normal
+#       potential subclass? To prevent confusion...
 class _RotatingPotential(CPotentialBase):
     r"""
     TODO:
@@ -962,6 +964,7 @@ class RotatingPotential(CCompositePotential):
         theta = Omega * t
 
         # construct rotation matrix to rotate around the vector Omega
+        #   see, e.g., https://math.kennesaw.edu/~plaval/math4490/rotgen.pdf
         uu = self._Omega / Omega # normalize
         C = np.cos(theta)
         S = np.sin(theta)
