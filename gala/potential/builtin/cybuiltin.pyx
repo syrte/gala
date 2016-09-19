@@ -29,7 +29,7 @@ from ..core import CompositePotential
 from ..cpotential import CPotentialBase
 from ..cpotential cimport CPotentialWrapper
 from ..ccompositepotential import CCompositePotential
-from ...units import DimensionlessUnitSystem
+from ...units import DimensionlessUnitSystem, dimensionless
 from ...integrate import DOPRI853Integrator, LeapfrogIntegrator
 
 cdef extern from "src/cpotential.h":
@@ -569,7 +569,7 @@ class SphericalNFWPotential(CPotentialBase):
         parameters['r_s'] = r_s
         super(SphericalNFWPotential, self).__init__(parameters=parameters,
                                                     units=units,
-                                                    Wrapper=SphericalNFWPotential)
+                                                    Wrapper=SphericalNFWWrapper)
 
 # ============================================================================
 
@@ -1066,6 +1066,3 @@ class ConstantRotatingPotential(CCompositePotential):
 
         else:
             return w.__class__(pos=pos_i, vel=vel_i)
-
-
-
