@@ -1,3 +1,5 @@
+#include "cframe.h"
+
 #ifndef MAX_N_COMPONENTS_H
 #define MAX_N_COMPONENTS_H
     enum {MAX_N_COMPONENTS = 16}; // HACK: this is a totally arbitrary number
@@ -31,10 +33,9 @@
         // pointer to array of pointers to the parameter arrays for each component
         double *parameters[MAX_N_COMPONENTS];
 
-        // used to add terms to value, gradient, hessian for, e.g., non-inertial frames
-        valuefunc value_helper;
-        gradientfunc gradient_helper;
-        hessianfunc hessian_helper;
+        // the reference frame
+        CFrame *frame;
+
     };
 #endif
 

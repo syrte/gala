@@ -21,15 +21,31 @@ double c_density(CPotential *p, double t, double *q) {
     return v;
 }
 
-void c_gradient(CPotential *p, double t, double *q, double *grad) {
+void c_gradient(CPotential *p, double t, double *qp, double *qp_dot) {
+    /*
+        Compute the time-derivatives of the phase-space coordinates
+        q, p at a given time, t. In most cases, this is:
+
+        q_dot = dH/dp
+        p_dot = -dH/dq
+
+    */
     int i;
 
-    for (i=0; i < (p->n_dim); i++) {
-        grad[i] = 0.;
+    for (i=0; i < (2*(p->n_dim)); i++) {
+        qp_dot[i] = 0.;
     }
 
+    // TODO: do I always want to do this? probably not...
+    for (i=0; i < (p->n_dim); i++) {
+        qp_dot[i] = qp_dot[i+p->n_dim]; // set q_dot = p
+    }
+
+    // apply the global reference frame
+    (p->frame->apply)(p->frame, t, qp, qp_dot);
+
     for (i=0; i < p->n_components; i++) {
-        (p->gradient)[i](t, (p->parameters)[i], q, grad);
+        (p->gradient)[i](t, (p->parameters)[i], qp, &qp_dot[p->n_dim]);
     }
 }
 
