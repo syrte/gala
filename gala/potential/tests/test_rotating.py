@@ -58,16 +58,19 @@ class ConstantRotatingPotentialTestBase(CompositePotentialTestBase):
         # rot_pot = ConstantRotatingPotential(log_pot, Omega=[0,0,1])
 
         for i in range(64):
+            # pick a random rotation vector
+            potential = ConstantRotatingPotential(self.log_pot, Omega=np.random.uniform(size=3))
+
             pos = np.random.uniform(size=3)
             vel = 1E-2 * np.random.uniform(size=3)
             w0 = CartesianPhaseSpacePosition(pos=pos, vel=vel)
-            w = self.potential.integrate_orbit(w0, dt=1E-2, n_steps=100,
-                                               Integrator=DOPRI853Integrator)
+            w = potential.integrate_orbit(w0, dt=1E-2, n_steps=100,
+                                          Integrator=DOPRI853Integrator)
 
-            w0_inertial = self.potential.to_inertial_frame(w0, t=0.)
+            w0_inertial = potential.to_inertial_frame(w0, t=0.)
             w_inertial = self.log_pot.integrate_orbit(w0_inertial, dt=1E-2, n_steps=100,
                                                       Integrator=DOPRI853Integrator)
-            w_trans_inertial = self.potential.to_inertial_frame(w)
+            w_trans_inertial = potential.to_inertial_frame(w)
 
             dx = w_trans_inertial.pos - w_inertial.pos
             dv = w_trans_inertial.vel - w_inertial.vel

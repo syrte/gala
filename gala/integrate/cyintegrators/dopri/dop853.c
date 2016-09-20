@@ -987,9 +987,7 @@ void Fwrapper (unsigned full_ndim, double t, double *w, double *f,
         c_gradient(p, t, &w[i*ndim], &f[i*ndim + half_ndim]);
 
         for (k=0; k < half_ndim; k++) {
-            // f[k] = w[k+half_ndim]
             f[i*ndim + k] = w[i*ndim + k + half_ndim];
-            // f[k+half_ndim] = -f[k+half_ndim]
             f[i*ndim + k + half_ndim] = -f[i*ndim + k + half_ndim];
         }
     }

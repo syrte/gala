@@ -30,6 +30,11 @@
 
         // pointer to array of pointers to the parameter arrays for each component
         double *parameters[MAX_N_COMPONENTS];
+
+        // used to add terms to value, gradient, hessian for, e.g., non-inertial frames
+        valuefunc value_helper;
+        gradientfunc gradient_helper;
+        hessianfunc hessian_helper;
     };
 #endif
 

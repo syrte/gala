@@ -908,6 +908,20 @@ class _ConstantRotatingPotential(CPotentialBase):
                                                          units=units,
                                                          Wrapper=ConstantRotatingWrapper)
 
+# DAMN, I think this entire approach was wrong because I was confusing 2nd order vs. 1st order
+#   equations. I essentially need to do what's in Eq. 3.115 (Pg 179) of Binney & Tremaine...
+#   I was just adding all terms from Eq. 3.116 to the gradient, but that's dead wrong. Maybe
+#   I can do something like pre_gradient(), post_gradient()??
+#
+# Another option is to do something in c_gradient() -- e.g., switch to returning the full 6-vector
+#   instead of just the positional derivatives and to then also accept a function that computes
+#   dx/dt. Would also need to add support for a function to add terms to the derivatives (Eq.
+#   3.115), but that is doable.
+#
+# A third option is to modify all of the gradient and hessian functions so that they return the
+#   full phase-space gradients instead of just the positional gradients...Then I can do what I
+#   had initially implemented and use the RotatingPotential as a pseudopotential component.
+
 class ConstantRotatingPotential(CCompositePotential):
 
     def __init__(self, potential, Omega):
